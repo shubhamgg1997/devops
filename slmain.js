@@ -275,6 +275,9 @@ RSA.D365CRM.SLOpportunity.Main = RSA.D365CRM.SLOpportunity.Main || ({
         formContext.getAttribute("rsa_cyorder").addOnChange(RSA.D365CRM.SLOpportunity.Main.CalculateBackGroundFieldForGrpShare);
         formContext.getAttribute("rsa_estimatedsigningpercentage").addOnChange(RSA.D365CRM.SLOpportunity.Main.CalculateBackGroundFieldForGrpShare);
         formContext.getAttribute("rsa_cyrsawritten").addOnChange(RSA.D365CRM.SLOpportunity.Main.CalculateBackGroundFieldForGrpShare);
+		formContext.getAttribute("rsa_cycaptivepremiumpc").addOnChange(RSA.D365CRM.SLOpportunity.Main.CalculateBackGroundFieldForGrpShare);
+		formContext.getAttribute("rsa_cypolgwp100exgrossupsandterrorismpc").addOnChange(RSA.D365CRM.SLOpportunity.Main.CalculateBackGroundFieldForGrpShare);
+		formContext.getAttribute("rsa_cypolrsashare").addOnChange(RSA.D365CRM.SLOpportunity.Main.CalculateBackGroundFieldForGrpShare);
 
         formContext.getAttribute("rsa_cygwprsasharebackgroundfield").addOnChange(RSA.D365CRM.SLOpportunity.Main.CalculateCommisionFields);
 
@@ -2738,50 +2741,53 @@ RSA.D365CRM.SLOpportunity.Main = RSA.D365CRM.SLOpportunity.Main || ({
         RSA.D365CRM.SLCommon.Main.ShowHideFormFields(executionContext, controlArray, IsVisible, SetNullValue);
     },
     CalculateBackGroundFieldForGrpShare: function (executionContext) {
-        var formContext = executionContext.getFormContext();
+    var formContext = executionContext.getFormContext();
 
-        // Inputs for "share" calc
-        var SRC_CYORDER = "rsa_cyorder";                    // % (25 = 25%)
-        var SRC_WRITTEN = "rsa_cyrsawritten";               // number
-        var SRC_SIGNING = "rsa_estimatedsigningpercentage"; // % (80 = 80%)
+    // Inputs for "share" calc (UNCHANGED)
+    var SRC_CYORDER = "rsa_cyorder";
+    var SRC_WRITTEN = "rsa_cyrsawritten";
+    var SRC_SIGNING = "rsa_estimatedsigningpercentage";
 
-        // Inputs for final calc
-        var SRC_GWP = "rsa_cygwp100exgrossupsandterrorismpc";
-        var TGT_FIELD = "rsa_cygwprsasharebackgroundfield";
+    // Inputs for final calc (UNCHANGED)
+    var SRC_GWP = "rsa_cygwp100exgrossupsandterrorismpc";
+    var TGT_FIELD = "rsa_cygwprsasharebackgroundfield";
 
-        var cyOrderAttr = formContext.getAttribute(SRC_CYORDER);
-        var writtenAttr = formContext.getAttribute(SRC_WRITTEN);
-        var signingAttr = formContext.getAttribute(SRC_SIGNING);
-        var gwpAttr = formContext.getAttribute(SRC_GWP);
-        var tgtAttr = formContext.getAttribute(TGT_FIELD);
+    var cyOrderAttr = formContext.getAttribute(SRC_CYORDER);
+    var writtenAttr = formContext.getAttribute(SRC_WRITTEN);
+    var signingAttr = formContext.getAttribute(SRC_SIGNING);
+    var gwpAttr     = formContext.getAttribute(SRC_GWP);
+    var tgtAttr     = formContext.getAttribute(TGT_FIELD);
 
-        if (!cyOrderAttr || !writtenAttr || !signingAttr || !gwpAttr || !tgtAttr) return;
+    if (!cyOrderAttr || !writtenAttr || !signingAttr || !gwpAttr || !tgtAttr) return;
 
-        var cyOrder = cyOrderAttr.getValue();
-        var written = writtenAttr.getValue();
-        var signingPct = signingAttr.getValue();
-        var gwp = gwpAttr.getValue();
+    var cyOrder    = cyOrderAttr.getValue();
+    var written    = writtenAttr.getValue();
+    var signingPct = signingAttr.getValue();
+    var gwp        = gwpAttr.getValue();
 
-        // If any input missing, clear target
-        if (cyOrder === null || written === null || signingPct === null || gwp === null) {
-            tgtAttr.setValue(null);
-            return;
-        }
+    if (cyOrder === null || written === null || signingPct === null || gwp === null) {
+        tgtAttr.setValue(null);
+        return;
+    }
 
-        // Your formula for "share"
-        // (cyOrder * written * signingPct) / 10000
-        var shareValue = (cyOrder * written * signingPct) / 10000;
+    var shareValue = (cyOrder * written * signingPct) / 10000;
 
-        // If shareValue is supposed to be a PERCENT (0..100), keep /100 below.
-        // If shareValue is already a factor (0..1), remove the /100 below.
-        var finalValue = gwp * (shareValue / 100);
+    var captivePremiumAttr = formContext.getAttribute("rsa_cycaptivepremiumpc");
+    var polGwpAttr         = formContext.getAttribute("rsa_cypolgwp100exgrossupsandterrorismpc");
+    var polRsaShareAttr    = formContext.getAttribute("rsa_cypolrsashare");
 
-        // round to 2 decimals
-        finalValue = Math.round(finalValue * 100) / 100;
+    var captivePremium = (captivePremiumAttr && captivePremiumAttr.getValue() !== null) ? captivePremiumAttr.getValue() : 0;
+    var polGwp         = (polGwpAttr         && polGwpAttr.getValue()         !== null) ? polGwpAttr.getValue()         : 0;
+    var polRsaShare    = (polRsaShareAttr     && polRsaShareAttr.getValue()    !== null) ? polRsaShareAttr.getValue()    : 0;
 
-        tgtAttr.setValue(finalValue);
-        tgtAttr.fireOnChange();
-    },
+    var step1 = (gwp - captivePremium - polGwp) * (shareValue / 100);
+    var step2 = polGwp * (polRsaShare / 100);
+    var finalValue = Math.round((step1 + step2) * 100) / 100;
+    // --- END new formula ---
+
+    tgtAttr.setValue(finalValue);
+    tgtAttr.fireOnChange();
+	},
     CalculateCommisionFields: function (executionContext) {
         var formContext = executionContext.getFormContext();
 
